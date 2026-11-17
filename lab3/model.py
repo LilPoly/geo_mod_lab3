@@ -1,5 +1,5 @@
-import contour as cn
-from transformations import TransformMatrix
+import lab3.contour as cn
+from lab3.transformations import TransformMatrix
 
 ANIM_MOVE_TIME = 2.5  
 ANIM_HOLD_TIME = 0.4   

@@ -2,7 +2,7 @@ import sys
 
 from PySide6.QtWidgets import QApplication
 
-from ui import MainWindow
+from lab3.ui import MainWindow
 
 
 def main():

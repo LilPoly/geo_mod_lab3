@@ -9,9 +9,9 @@ from PySide6.QtWidgets import (
     QCheckBox, QSlider, QAbstractSpinBox, QFrame,
 )
 
-import contour as cn
-from model import ContourModel
-from renderer import ContourRenderer, EXTENT
+import lab3.contour as cn
+from lab3.model import ContourModel
+from lab3.renderer import ContourRenderer, EXTENT
 
 ANIM_INTERVAL_MS = 16
 HIT_RADIUS_PX = 9
