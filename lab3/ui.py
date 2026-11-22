@@ -165,7 +165,7 @@ class MainWindow(QMainWindow):
 
         g.setRowMinimumHeight(r, 14); r += 1
 
-        g.addWidget(QLabel("Arc parameter f (ellipse: 0 < f < 0.5)"), r, 0, 1, 4); r += 1
+        g.addWidget(QLabel("Arc parameter f (0 < f < 1)"), r, 0, 1, 4); r += 1
         self.slider_f = QSlider(Qt.Orientation.Horizontal)
         self.slider_f.setRange(round(cn.F_MIN * 100), round(cn.F_MAX * 100))
         self.slider_f.valueChanged.connect(self.on_slider_f)

@@ -1,7 +1,7 @@
 import math
 
 F_MIN = 0.05
-F_MAX = 0.49   
+F_MAX = 0.95
 F_DEFAULT = 0.35
 ARC_STEPS = 32 
 
