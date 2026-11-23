@@ -1,9 +1,9 @@
 import math
 
 F_MIN = 0.05
-F_MAX = 0.95
+F_MAX = 0.49
 F_DEFAULT = 0.35
-ARC_STEPS = 32 
+ARC_STEPS = 32
 
 
 def weight_from_f(f):
@@ -34,7 +34,6 @@ def arc_point(a, b, c, f, u):
 
 def sample_arc(a, b, c, f, steps=ARC_STEPS):
     return [arc_point(a, b, c, f, i / steps) for i in range(steps + 1)]
-
 
 
 IMG_CX, IMG_CY = 530.0, 380.0
@@ -73,6 +72,7 @@ def ellipse_component(cx, cy, a, b, rot_deg, n=6):
     q = [at(2 * half * j + half, 1.0 / w) for j in range(n)]
     return p, q, [w / (1.0 + w)] * n
 
+
 def open_component(points_img, f=F_DEFAULT):
     p = [list(img(x, y)) for x, y, _ in points_img]
     n = len(p)
@@ -107,6 +107,7 @@ def spiral_component(c0, c1, a0, b0, scale_end, rot_deg,
     p = [at(j) for j in range(n + 1)]
     q = [at(j, True) for j in range(n)] + [at(n)]
     return p, q, [w / (1.0 + w)] * (n + 1), False
+
 
 def build_components():
     comps = [
@@ -188,11 +189,12 @@ def default_contour():
         comps.append((s, s + n, closed))
     return p, q, f, nxt, comps
 
+
 def _triangle_for(points, count, source):
     xs = [pt[0] for pt in points]
     ys = [pt[1] for pt in points]
     x0, x1, y0, y1 = min(xs), max(xs), min(ys), max(ys)
-    verts = [(x0, y0), (x1, y0), ((x0 + x1) / 2.0, y1)] 
+    verts = [(x0, y0), (x1, y0), ((x0 + x1) / 2.0, y1)]
     counts = [count // 3 + (1 if i < count % 3 else 0) for i in range(3)]
     p = []
     for s in range(3):
@@ -200,6 +202,7 @@ def _triangle_for(points, count, source):
         for j in range(counts[s]):
             t = j / counts[s]
             p.append([a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t])
+
     def cost(shift):
         return sum((source[i][0] - p[(i + shift) % count][0]) ** 2 +
                    (source[i][1] - p[(i + shift) % count][1]) ** 2 for i in range(count))

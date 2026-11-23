@@ -1,4 +1,3 @@
-# ui.py
 import math
 
 from PySide6.QtCore import Qt, Signal, QTimer
@@ -15,6 +14,7 @@ from lab3.renderer import ContourRenderer, EXTENT
 
 ANIM_INTERVAL_MS = 16
 HIT_RADIUS_PX = 9
+CLICK_TOLERANCE_PX = 3
 
 STYLE = """
 QLineEdit#flat, QComboBox#flat {
@@ -93,7 +93,7 @@ class CanvasView(QGraphicsView):
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Криволінійний контур (дуги еліпсів) - Лабораторна 3")
+        self.setWindowTitle("Гладкі криволінійні контури - Лабораторна 4")
         self.resize(1300, 820)
         self.setStyleSheet(STYLE)
 
@@ -165,7 +165,7 @@ class MainWindow(QMainWindow):
 
         g.setRowMinimumHeight(r, 14); r += 1
 
-        g.addWidget(QLabel("Arc parameter f (0 < f < 1)"), r, 0, 1, 4); r += 1
+        g.addWidget(QLabel("Arc parameter f (ellipse: 0 < f < 0.5)"), r, 0, 1, 4); r += 1
         self.slider_f = QSlider(Qt.Orientation.Horizontal)
         self.slider_f.setRange(round(cn.F_MIN * 100), round(cn.F_MAX * 100))
         self.slider_f.valueChanged.connect(self.on_slider_f)
@@ -205,7 +205,6 @@ class MainWindow(QMainWindow):
         g.addWidget(self._label("X", True), r, 0); g.addWidget(self.spin_rx, r, 1)
         g.addWidget(self._label("Y", True), r, 2); g.addWidget(self.spin_ry, r, 3); r += 1
 
-        # ---- angle
         self.spin_angle = QSpinBox()
         self.spin_angle.setObjectName("flat")
         self.spin_angle.setButtonSymbols(QAbstractSpinBox.ButtonSymbols.NoButtons)
@@ -214,7 +213,7 @@ class MainWindow(QMainWindow):
         self.spin_angle.setFixedWidth(70)
         self.spin_angle.valueChanged.connect(self.on_transform_changed)
         g.addWidget(self._label("angle", True), r, 0); g.addWidget(self.spin_angle, r, 1); r += 1
-        
+
         g.setRowStretch(r, 1)
 
         scroll = QScrollArea()
@@ -290,27 +289,36 @@ class MainWindow(QMainWindow):
             if hit is not None:
                 kind, i = hit
                 m.selected = i
-                self._drag = ("point", kind, i)
+                self._drag = {"type": "point", "kind": kind, "i": i,
+                              "x": x, "y": y, "moved": False}
                 self.refresh()
                 return
-        self._drag = ("figure", x, y, m.fx, m.fy)
+        self._drag = {"type": "figure", "x": x, "y": y, "fx": m.fx, "fy": m.fy}
 
     def on_left_moved(self, x, y):
         if self._drag is None:
             return
         m = self.model
-        if self._drag[0] == "point":
-            _, kind, i = self._drag
-            m.move_point(kind, i, x, y)
+        d = self._drag
+        if d["type"] == "point":
+            if not d["moved"]:
+                shift = math.hypot(x - d["x"], y - d["y"]) * self.view.zoom()
+                if shift < CLICK_TOLERANCE_PX:
+                    return
+                d["moved"] = True
+            m.move_point(d["kind"], d["i"], x, y)
         else:
-            _, x0, y0, fx0, fy0 = self._drag
-            m.fx, m.fy = fx0 + (x - x0), fy0 + (y - y0)
+            m.fx, m.fy = d["fx"] + (x - d["x"]), d["fy"] + (y - d["y"])
             self._set_spin(self.spin_fx, m.fx)
             self._set_spin(self.spin_fy, m.fy)
         self.refresh()
 
     def on_left_released(self):
+        d = self._drag
         self._drag = None
+        if d is not None and d["type"] == "point" and d["kind"] == "p" and not d["moved"]:
+            self.model.toggle_smooth(d["i"])
+            self.refresh()
 
     def on_rotate_point_set(self, x, y):
         self.model.rx, self.model.ry = x, y

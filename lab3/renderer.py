@@ -7,7 +7,7 @@ EXTENT = 1500
 
 def _pen(color, width):
     pen = QPen(color, width)
-    pen.setCosmetic(True)   
+    pen.setCosmetic(True)
     pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
     pen.setCapStyle(Qt.PenCapStyle.RoundCap)
     return pen
@@ -26,10 +26,11 @@ class ContourRenderer:
         self.item_skeleton.setZValue(1)
 
         thin = _pen(QColor(0, 0, 0), 1)
-        black = QBrush(QColor(0, 0, 0))
+        self.brush_knot = QBrush(QColor(0, 0, 0))
+        self.brush_smooth = QBrush(QColor(220, 0, 0))
         green = QBrush(QColor(0, 205, 0))
-        self.items_p = [self._dot(3.5, thin, black, 8) for _ in range(n)]   # A, C
-        self.items_q = [self._dot(4.0, thin, green, 9) for _ in range(n)]   # B
+        self.items_p = [self._dot(3.5, thin, self.brush_knot, 8) for _ in range(n)]
+        self.items_q = [self._dot(4.0, thin, green, 9) for _ in range(n)]
         self.item_rotate = self._dot(6, _pen(QColor(30, 80, 220), 2), QBrush(Qt.BrushStyle.NoBrush), 10)
 
     def _dot(self, r, pen, brush, z):
@@ -65,6 +66,7 @@ class ContourRenderer:
         for i in range(n):
             self.items_p[i].setPos(sp[i][0], sp[i][1])
             self.items_q[i].setPos(sq[i][0], sq[i][1])
+            self.items_p[i].setBrush(self.brush_smooth if model.smooth[i] else self.brush_knot)
             self.items_p[i].setVisible(show)
             self.items_q[i].setVisible(show)
 

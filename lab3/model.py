@@ -1,8 +1,11 @@
+import math
+
 import lab3.contour as cn
 from lab3.transformations import TransformMatrix
 
-ANIM_MOVE_TIME = 2.5  
-ANIM_HOLD_TIME = 0.4   
+ANIM_MOVE_TIME = 2.5
+ANIM_HOLD_TIME = 0.4
+EPS = 1e-9
 
 
 class ContourModel:
@@ -10,17 +13,30 @@ class ContourModel:
         (self.initial_p, self.initial_q, self.initial_f,
          self.next, self.comps) = cn.default_contour()
         self.n = len(self.initial_p)
+        self._build_topology()
         self.reset()
+
+    def _build_topology(self):
+        self.prev = [None] * self.n
+        self.can_smooth = [False] * self.n
+        for s, e, closed in self.comps:
+            for i in range(s, e):
+                if closed or i != e - 1:
+                    self.prev[self.next[i]] = i
+            for j in range(s, e):
+                if closed or s < j < e - 1:
+                    self.can_smooth[j] = True
 
     def reset(self):
         self.p = [pt[:] for pt in self.initial_p]
         self.q = [pt[:] for pt in self.initial_q]
         self.f = list(self.initial_f)
+        self.smooth = [False] * self.n
         self.all_arcs = True
-        self.selected = None        
-        self.fx = self.fy = 0.0    
-        self.rx = self.ry = 0.0     
-        self.angle = 0.0     
+        self.selected = None
+        self.fx = self.fy = 0.0
+        self.rx = self.ry = 0.0
+        self.angle = 0.0
         self.skeleton = True
         self.animating = False
         self._tau = 0.0
@@ -67,10 +83,58 @@ class ContourModel:
                     best, best_d = (kind, i), d
         return best
 
+    def toggle_smooth(self, j):
+        if self.can_smooth[j]:
+            self.smooth[j] = not self.smooth[j]
+
+    def _align_outgoing(self, j, k):
+        px, py = self.p[j]
+        vx, vy = px - self.q[k][0], py - self.q[k][1]
+        length = math.hypot(vx, vy)
+        if length < EPS:
+            return False
+        d = math.hypot(self.q[j][0] - px, self.q[j][1] - py)
+        self.q[j] = [px + vx / length * d, py + vy / length * d]
+        return True
+
+    def _align_incoming(self, j, k):
+        px, py = self.p[j]
+        vx, vy = self.q[j][0] - px, self.q[j][1] - py
+        length = math.hypot(vx, vy)
+        if length < EPS:
+            return False
+        d = math.hypot(px - self.q[k][0], py - self.q[k][1])
+        self.q[k] = [px - vx / length * d, py - vy / length * d]
+        return True
+
+    def _propagate(self, start, visited):
+        stack = [start]
+        while stack:
+            i = stack.pop()
+            j = self.next[i]
+            if self.smooth[j] and j not in visited:
+                if self._align_outgoing(j, i):
+                    visited.add(j)
+                    stack.append(j)
+            if self.smooth[i]:
+                k = self.prev[i]
+                if k is not None and k not in visited:
+                    if self._align_incoming(i, k):
+                        visited.add(k)
+                        stack.append(k)
+
     def move_point(self, kind, i, x, y):
         inv = TransformMatrix.get_inverse(self.matrix())
         nx, ny = TransformMatrix.apply_to_point(x, y, inv)
-        (self.p if kind == "p" else self.q)[i] = [nx, ny]
+        if kind == "q":
+            self.q[i] = [nx, ny]
+            self._propagate(i, {i})
+            return
+        self.p[i] = [nx, ny]
+        if self.smooth[i]:
+            k = self.prev[i]
+            self._align_outgoing(i, k)
+            self._propagate(i, {i, k})
 
     def start_animation(self):
         self._base = ([pt[:] for pt in self.p], [pt[:] for pt in self.q])
